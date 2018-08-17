@@ -17,6 +17,7 @@ int portNum;
 int keyFD;
 int keyLen;
 char buffer[BUF_SIZE];
+char keyBuffer[BUF_SIZE];
 int plainTextFD;
 int plainTextLen;
 int i;
@@ -28,7 +29,7 @@ struct sockaddr_in serverAddress;
 struct hostent* serverHostInfo;
 
 void error(const char *msg) { 
-	printf("%s\n", msg);
+	// printf("%s\n", msg);
 	fprintf(stderr, "%s", msg); 
 	exit(1); 
 } // Error function used for reporting issues
@@ -61,21 +62,23 @@ int main(int argc, char *argv[]) {
     }
 	}
 
-	memset(buffer, 0, BUF_SIZE); //reset buffer
+	// memset(buffer, 0, BUF_SIZE); //reset buffer
 
 	keyFD = open(argv[2], O_RDONLY); //third argument is the key
-	keyLen = read(keyFD, buffer, BUF_SIZE); //get length of keyFD
+	keyLen = read(keyFD, keyBuffer, BUF_SIZE); //get length of keyFD
 	// printf("keyLen: %d\n", keyLen); //test statement
 	// fflush(stdout);
 
 	//check key file for bad characters
   for (i = 0; i < keyLen - 1; i++) {
-    if ((int) buffer[i] != 32 && ((int) buffer[i] < 65 || (int) buffer[i] > 90)) {
+    if ((int) keyBuffer[i] != 32 && ((int) keyBuffer[i] < 65 || (int) keyBuffer[i] > 90)) {
       error("otp_enc Key File error: key contains bad characters\n");
       // break;
       exit(1);
     }
 	}	
+
+	// memset(keyBuffer, 0, BUF_SIZE); //reset buffer
 
 	// validate key length is long enough
 	if (keyLen < plainTextLen) {
@@ -86,7 +89,7 @@ int main(int argc, char *argv[]) {
 
 	//store port number
 	portNum = atoi(argv[3]); // final argument is the port entered by user
-	printf("portNum: %d\n", portNum);
+	// printf("portNum: %d\n", portNum);
 
 	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
 
@@ -125,14 +128,37 @@ int main(int argc, char *argv[]) {
 
 	// printf("Getting Return Msg from Server\n");
 		// Get return message from server
-	memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer again for reuse
+	memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer again
 	charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); // Read data from the socket, leaving \0 at end
 	
-	printf("Received Data from Socket\n");
+	// printf("Received Data from Socket\n");
 	if (charsRead < 0) {
 		error("CLIENT: ERROR reading from socket");
 	}
 	printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
+
+	// ************************************************************** // 
+
+		// Send message to server
+	charsWritten = send(socketFD, keyBuffer, strlen(keyBuffer), 0); // Write to the server
+	if (charsWritten < 0) {
+		error("otp_enc: Error writing to socket\n");
+	}
+
+	if (charsWritten < strlen(keyBuffer)) {
+		error("otp_enc: Warning - Not all data written to socket!\n");
+	}
+
+	// printf("Getting Return Msg from Server\n");
+		// Get return message from server
+	memset(keyBuffer, '\0', sizeof(keyBuffer)); // Clear out the buffer again for reuse
+	charsRead = recv(socketFD, keyBuffer, sizeof(keyBuffer) - 1, 0); // Read data from the socket, leaving \0 at end
+	
+	// printf("Received Data from Socket\n");
+	if (charsRead < 0) {
+		error("CLIENT: ERROR reading from socket");
+	}
+	printf("CLIENT: I received this from the server: \"%s\"\n", keyBuffer);
 
 	return 0;
 }

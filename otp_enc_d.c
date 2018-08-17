@@ -7,16 +7,16 @@
 #include <netinet/in.h>
 
 #define BUF_SIZE 50000
+char encryptedMsg[BUF_SIZE];
 
 //function declaration
-void encryptMsg(char* key, char* msg);
+char* encryptMsg(char* key, char* msg);
 // void decryptMsg(char* key, char* cypherText);
 
 // method to encrypt a message that is passed in with a key
-void encryptMsg(char* key, char* msg) {
+char* encryptMsg(char* key, char* msg) {
 	int i, j, msgValue, keyValue, encryptedVal, lenMsg, lenKey, lenPlainText;
 	char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
-	char encryptedMsg[BUF_SIZE];
 	memset(encryptedMsg, 0, sizeof(encryptedMsg));
 	lenMsg = strlen(msg); // remove null terminator
 	for (i = 0; i < lenMsg; i++) {
@@ -36,7 +36,7 @@ void encryptMsg(char* key, char* msg) {
 	}
 	encryptedMsg[i] = '\0'; // set null terminator
 	printf("Encrypted Msg:%s\n", encryptedMsg);
-	return;
+	return encryptedMsg;
 }
 
 // method to decrypt a cyphertext msg that is passed in with a key
@@ -77,12 +77,13 @@ void error(const char *msg) {
 
 int main(int argc, char *argv[]) {
 
-	encryptMsg("XMCKL", "HELLO");
-	// decryptMsg("XMCKL", "DQNVZ");
+	// encryptMsg("XMCKL", "HELLO");
+	// decryptMsg("JNGFQKRXUOM BVGT ", "R FYXOQYYUUMOCTZF");
 
 	int listenSocketFD, establishedConnectionFD, portNumber, charsRead;
 	socklen_t sizeOfClientInfo;
 	char buffer[BUF_SIZE];
+	char keyBuffer[BUF_SIZE];
 	struct sockaddr_in serverAddress, clientAddress;
 
 	// check that the correct # of arguments are used (port number is included)
@@ -90,7 +91,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Please use the correct # of arguments\n"); 
 		exit(1); 
 	}
-	printf("Arg Count Correct\n");
+	// printf("Arg Count Correct\n");
 
 // Set up the address struct for this process (the server)
 	memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
@@ -117,14 +118,14 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	printf("Socket flipped on, starting While Loop\n");
+	// printf("Socket flipped on, starting While Loop\n");
 
 	while(1) {
 		// Accept a connection, blocking if one is not available until one connects
 		sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
-		printf("About to establish a connection\n");
+		// printf("About to establish a connection\n");
 		establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
-		printf("FD Accepted\n");
+		// printf("FD Accepted\n");
 		if (establishedConnectionFD < 0) {
 			error("ERROR on accept");		
 		}
@@ -139,24 +140,43 @@ int main(int argc, char *argv[]) {
 	    } // end of error case
 	    case 0: { // child case
 	    	memset(buffer, 0, BUF_SIZE); // clear out buffer
+	    	memset(keyBuffer, 0, BUF_SIZE); // clear out buffer
 	    	// Get the message from the client and display it
-	    	printf("About to Recv\n");
-	    	charsRead = recv(establishedConnectionFD, buffer, BUF_SIZE - 1, 0); // Read the client's message from the socket
-				if (charsRead < 0) {
-					error("ERROR reading from socket");
-					exit(1);
-				}
-				printf("SERVER: I received this from the client: \"%s\"\n", buffer);
+	    	// printf("About to Recv\n");
+	    	// while(1) {
+		    	charsRead = recv(establishedConnectionFD, buffer, BUF_SIZE - 1, 0); // Read the client's message from the socket
+					if (charsRead < 0) {
+						error("ERROR reading from socket");
+						exit(1);
+					}
+					// printf("SERVER: I received this from the client: %s", buffer);
 
-	    	// send ackknowledgement back to client
-				charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
-				if (charsRead < 0) {
-					error("ERROR writing to socket");
-				}
+		    	// send ackknowledgement back to client
+					charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
+					if (charsRead < 0) {
+						error("ERROR writing to socket");
+					}
+
+					charsRead = recv(establishedConnectionFD, keyBuffer, BUF_SIZE, 0); // Read the client's message from the socket
+					if (charsRead < 0) {
+						error("ERROR reading from socket");
+						exit(1);
+					}
+					// printf("SERVER: I received this from the client: %s", keyBuffer);
+
+		    	// send acknowledgement back to client
+					charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
+					if (charsRead < 0) {
+						error("ERROR writing to socket");
+					}
+					char* encryptedMsgToSend;
+					encryptedMsgToSend = encryptMsg(keyBuffer, buffer);
+				// }
 				close(establishedConnectionFD); // Close the existing socket which is connected to the client
 	    	break;
 	    } // end of child case
 	    default: { // parent case
+	    	close(establishedConnectionFD);
 	    	break;
 	    } // end of parent case
 		}
