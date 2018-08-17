@@ -28,22 +28,22 @@ int charsRead;
 struct sockaddr_in serverAddress;
 struct hostent* serverHostInfo;
 
-void error(const char *msg) { 
-	// printf("%s\n", msg);
-	fprintf(stderr, "%s", msg); 
-	exit(1); 
-} // Error function used for reporting issues
+// void error(const char *msg) { 
+// 	// printf("%s\n", msg);
+// 	fprintf(stderr, "%s", msg); 
+// 	exit(1); 
+// } // Error function used for reporting issues
 
 int main(int argc, char *argv[]) {
 
 // running in terminal == "otp_enc plaintext key port"
 	
 	if (argc < 4) {
-		error("Too Few Arguments\n");
+		fprintf(stderr, "Too Few Arguments\n");
 		fflush(stdout);
 		exit(1);
 	} else if (argc > 4) {
-		error("Too Many Arguments\n");
+		fprintf(stderr, "Too Many Arguments\n");
 		fflush(stdout);
 		exit(1);
 	}
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 	// check for invalid chars
   for (i = 0; i < plainTextLen - 1; i++) {
     if ((int) buffer[i] != 32 && ((int) buffer[i] < 65 || (int) buffer[i] > 90)) {
-      error("otp_enc plainText File error: plainText File contains bad characters\n");
+      fprintf(stderr, "otp_enc plainText File error: plainText File contains bad characters\n");
       // break;
       exit(1);
     }
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 	//check key file for bad characters
   for (i = 0; i < keyLen - 1; i++) {
     if ((int) keyBuffer[i] != 32 && ((int) keyBuffer[i] < 65 || (int) keyBuffer[i] > 90)) {
-      error("otp_enc Key File error: key contains bad characters\n");
+      fprintf(stderr, "otp_enc Key File error: key contains bad characters\n");
       // break;
       exit(1);
     }
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 
 	// validate key length is long enough
 	if (keyLen < plainTextLen) {
-		error("Key Too Short\n");
+		fprintf(stderr, "Key Too Short\n");
 		// fflush(stdout);
 		exit(1);
 	}
@@ -97,8 +97,8 @@ int main(int argc, char *argv[]) {
 	serverAddress.sin_port = htons(portNum); // Store the port number	
   serverHostInfo = gethostbyname("localhost"); 	// use localhost as target IP address/host
 	if (serverHostInfo == NULL) {
-    error("otp_enc: Couldn't connect with otp_enc_d\n");
-    exit(2);
+    fprintf(stderr, "otp_enc: Couldn't connect port # %d\n", portNum);
+    exit(1);
 	} 
 
 	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
@@ -106,24 +106,24 @@ int main(int argc, char *argv[]) {
 	// Set up the socket
 	socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
 	if (socketFD < 0) {
-		error("otp_enc: Error opening socket\n");
+		fprintf(stderr, "otp_enc: Error opening socket\n");
 	}
 
 	// Connect to server
 	// printf("Connecting to Server\n");
 	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {// Connect socket to address
-		error("otp_enc: Error connecting\n");
+		fprintf(stderr, "otp_enc: Error connecting\n");
 	}
 	// printf("Connected\n");
 
 	// Send message to server
 	charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server
 	if (charsWritten < 0) {
-		error("otp_enc: Error writing to socket\n");
+		fprintf(stderr, "otp_enc: Error writing to socket\n");
 	}
 
 	if (charsWritten < strlen(buffer)) {
-		error("otp_enc: Warning - Not all data written to socket!\n");
+		fprintf(stderr, "otp_enc: Warning - Not all data written to socket!\n");
 	}
 
 	// printf("Getting Return Msg from Server\n");
@@ -133,20 +133,20 @@ int main(int argc, char *argv[]) {
 	
 	// printf("Received Data from Socket\n");
 	if (charsRead < 0) {
-		error("CLIENT: ERROR reading from socket");
+		fprintf(stderr, "CLIENT: ERROR reading from socket");
 	}
-	printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
+	// printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
 
 	// ************************************************************** // 
 
 		// Send message to server
 	charsWritten = send(socketFD, keyBuffer, strlen(keyBuffer), 0); // Write to the server
 	if (charsWritten < 0) {
-		error("otp_enc: Error writing to socket\n");
+		fprintf(stderr, "otp_enc: Error writing to socket\n");
 	}
 
 	if (charsWritten < strlen(keyBuffer)) {
-		error("otp_enc: Warning - Not all data written to socket!\n");
+		fprintf(stderr, "otp_enc: Warning - Not all data written to socket!\n");
 	}
 
 	// printf("Getting Return Msg from Server\n");
@@ -156,9 +156,9 @@ int main(int argc, char *argv[]) {
 	
 	// printf("Received Data from Socket\n");
 	if (charsRead < 0) {
-		error("CLIENT: ERROR reading from socket");
+		fprintf(stderr, "CLIENT: ERROR reading from socket");
 	}
-	printf("CLIENT: I received this from the server: \"%s\"\n", keyBuffer);
+	printf("%s\n", keyBuffer);
 
 	return 0;
 }

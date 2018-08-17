@@ -35,7 +35,7 @@ char* encryptMsg(char* key, char* msg) {
 		}
 	}
 	encryptedMsg[i] = '\0'; // set null terminator
-	printf("Encrypted Msg:%s\n", encryptedMsg);
+	// printf("Encrypted Msg:%s\n", encryptedMsg);
 	return encryptedMsg;
 }
 
@@ -71,7 +71,7 @@ char* encryptMsg(char* key, char* msg) {
 // }
 
 void error(const char *msg) { 
-	perror(msg); 
+	fprintf(stderr, "%s", msg); 
 	exit(1); 
 } // Error function used for reporting issues
 
@@ -164,13 +164,20 @@ int main(int argc, char *argv[]) {
 					}
 					// printf("SERVER: I received this from the client: %s", keyBuffer);
 
-		    	// send acknowledgement back to client
-					charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
+		   //  	// send acknowledgement back to client
+					// charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
+					// if (charsRead < 0) {
+					// 	error("ERROR writing to socket");
+					// }
+
+					char* encryptedMsgToSend;
+					encryptedMsgToSend = encryptMsg(keyBuffer, buffer);
+
+		    	// send encryptedMessage back to client
+					charsRead = send(establishedConnectionFD, encryptedMsg, strlen(encryptedMsg), 0); // Send success back
 					if (charsRead < 0) {
 						error("ERROR writing to socket");
 					}
-					char* encryptedMsgToSend;
-					encryptedMsgToSend = encryptMsg(keyBuffer, buffer);
 				// }
 				close(establishedConnectionFD); // Close the existing socket which is connected to the client
 	    	break;
